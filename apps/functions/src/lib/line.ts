@@ -1,15 +1,15 @@
 import axios from "axios";
-import { defineSecret, defineString } from "firebase-functions/params";
+import { defineSecret } from "firebase-functions/params";
 import { logger } from "firebase-functions/v2";
 
 // ----------------------------------------------------------------
-// Params (resolved at deploy time / runtime)
+// Params (all managed via Secret Manager)
 // ----------------------------------------------------------------
 
-export const lineChannelId = defineString("LINE_CHANNEL_ID");
+export const lineChannelId = defineSecret("LINE_CHANNEL_ID");
 export const lineChannelSecret = defineSecret("LINE_CHANNEL_SECRET");
 export const lineMessagingToken = defineSecret("LINE_MESSAGING_TOKEN");
-export const lineGroupId = defineString("LINE_GROUP_ID");
+export const lineGroupId = defineSecret("LINE_GROUP_ID");
 
 // ----------------------------------------------------------------
 // LINE Messaging API helpers

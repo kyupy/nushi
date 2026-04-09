@@ -21,7 +21,7 @@ export const monthlyRankingPost = onSchedule(
     schedule: "0 9 1 * *",
     timeZone: "Asia/Tokyo",
     region: "asia-northeast1",
-    secrets: [lineChannelSecret, lineMessagingToken],
+    secrets: [lineChannelSecret, lineMessagingToken, lineGroupId],
   },
   async () => {
     // Determine previous month

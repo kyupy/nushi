@@ -2,7 +2,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
-import { verifyIdToken, lineChannelSecret, lineMessagingToken } from "../lib/line";
+import { verifyIdToken, lineChannelId, lineChannelSecret, lineMessagingToken } from "../lib/line";
 import type { AuthWithLineRequest, AuthWithLineResponse, UserDoc } from "@nushi/shared";
 
 const db = () => getFirestore();
@@ -10,7 +10,7 @@ const db = () => getFirestore();
 export const authWithLine = onCall<AuthWithLineRequest>(
   {
     region: "asia-northeast1",
-    secrets: [lineChannelSecret, lineMessagingToken],
+    secrets: [lineChannelId, lineChannelSecret, lineMessagingToken],
   },
   async (request): Promise<AuthWithLineResponse> => {
     const { idToken } = request.data;
