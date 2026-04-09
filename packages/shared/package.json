@@ -2,12 +2,14 @@
   "name": "@nushi/shared",
   "version": "0.0.1",
   "private": true,
-  "main": "./dist/types.js",
-  "types": "./dist/types.d.ts",
+  "main": "./src/types.ts",
+  "types": "./src/types.ts",
   "exports": {
     ".": {
+      "types": "./src/types.ts",
       "import": "./dist/types.js",
-      "types": "./dist/types.d.ts"
+      "require": "./dist/types.js",
+      "default": "./src/types.ts"
     }
   },
   "scripts": {
