@@ -19,7 +19,6 @@
     "firebase-functions": "^6.3.0"
   },
   "devDependencies": {
-    "@nushi/shared": "*",
     "@types/node": "^25.5.2",
     "firebase-functions-test": "^3.4.0",
     "typescript": "^5.7.0"
