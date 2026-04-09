@@ -1,0 +1,23 @@
+{
+  "name": "@nushi/shared",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./dist/types.js",
+  "types": "./dist/types.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/types.js",
+      "types": "./dist/types.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}

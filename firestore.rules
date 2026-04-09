@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: check if the caller is the document owner
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Helper: check if caller is admin
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+
+    // Helper: check if authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Users
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if false; // Functions only
+    }
+
+    // Logs (raw, immutable)
+    match /logs/{logId} {
+      allow read: if isAuthenticated()
+        && resource.data.userId == request.auth.uid || isAdmin();
+      allow write: if false; // Functions only
+    }
+
+    // Sessions
+    match /sessions/{sessionId} {
+      allow read: if isAuthenticated()
+        && resource.data.userId == request.auth.uid || isAdmin();
+      allow write: if false; // Functions only
+    }
+
+    // Stats (readable by all authenticated users)
+    match /stats/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Functions only
+    }
+
+    // Config
+    match /config/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+  }
+}
