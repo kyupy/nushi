@@ -1,0 +1,19 @@
+{
+  "name": "nushi",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspace=packages/shared && npm run build --workspace=apps/functions && npm run build --workspace=apps/web",
+    "build:web": "npm run build --workspace=packages/shared && npm run build --workspace=apps/web",
+    "build:functions": "npm run build --workspace=packages/shared && npm run build --workspace=apps/functions",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
