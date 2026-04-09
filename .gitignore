@@ -7,3 +7,9 @@ dist/
 .firebase/
 .cache/
 *.tsbuildinfo
+*.js.map
+*.d.ts.map
+
+# Don't track compiled JS in shared src (output goes to dist/)
+packages/shared/src/*.js
+packages/shared/src/*.d.ts
