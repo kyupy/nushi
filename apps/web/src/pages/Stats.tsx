@@ -55,23 +55,19 @@ export default function Stats() {
     const load = async () => {
       setLoading(true);
       try {
-        // Fetch monthly stats for current user's data
-        const monthlyRef = doc(db, "monthlyStats", yearMonth);
+        // 1. 月間全体の統計から自分のデータを取得 (_root_ ドキュメント)
+        const monthlyRef = doc(db, "stats", "monthly", yearMonth, "_root_");
         const monthlySnap = await getDoc(monthlyRef);
         if (monthlySnap.exists()) {
           const data = monthlySnap.data() as MonthlyStatsDoc;
-          const userEntry = data.users[firebaseUser.uid];
+          const userEntry = data.users?.[firebaseUser.uid];
           if (userEntry) {
             setMonthlyUser(userEntry);
           }
         }
 
-        // Fetch detailed user monthly stats
-        const userStatsRef = doc(
-          db,
-          "userMonthlyStats",
-          `${firebaseUser.uid}_${yearMonth}`
-        );
+        // 2. 自分の詳細な月間統計を取得 (users サブコレクション)
+        const userStatsRef = doc(db, "stats", "monthly", yearMonth, "users", firebaseUser.uid);
         const userStatsSnap = await getDoc(userStatsRef);
         if (userStatsSnap.exists()) {
           setUserStats(userStatsSnap.data() as UserMonthlyStatsDoc);
