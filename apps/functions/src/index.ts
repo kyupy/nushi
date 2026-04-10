@@ -8,6 +8,7 @@ export { authWithLine } from "./callable/authWithLine";
 export { checkIn } from "./callable/checkIn";
 export { fixStamp } from "./callable/fixStamp";
 export { recalculate } from "./callable/recalculate";
+export { voidLog } from "./callable/voidLog";
 
 // ---- Firestore triggers ----
 export { onLogCreate } from "./triggers/onLogCreate";

@@ -60,7 +60,7 @@ export default function Ranking() {
 
   useEffect(() => {
     setLoading(true);
-    const docRef = doc(db, "monthlyStats", yearMonth);
+    const docRef = doc(db, "stats", "monthly", yearMonth, "_root_");
     const unsubscribe = onSnapshot(
       docRef,
       (snapshot) => {

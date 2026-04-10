@@ -67,7 +67,7 @@ export default function Stats() {
         }
 
         // 2. 自分の詳細な月間統計を取得 (users サブコレクション)
-        const userStatsRef = doc(db, "stats", "monthly", yearMonth, "users", firebaseUser.uid);
+        const userStatsRef = doc(db, "stats", "monthly", yearMonth, firebaseUser.uid);
         const userStatsSnap = await getDoc(userStatsRef);
         if (userStatsSnap.exists()) {
           setUserStats(userStatsSnap.data() as UserMonthlyStatsDoc);
@@ -153,7 +153,7 @@ export default function Stats() {
               </div>
 
               {/* Heatmap */}
-              {userStats.heatmap && userStats.heatmap.length === 7 && (
+              {userStats.heatmap && userStats.heatmap.length === 168 && (
                 <div className="card">
                   <h3 className="text-sm font-semibold text-gray-700 mb-3">
                     活動ヒートマップ
@@ -173,11 +173,10 @@ export default function Stats() {
                       </div>
 
                       {/* Heatmap rows */}
-                      {userStats.heatmap.map((hours, dayIdx) => {
-                        const maxVal = Math.max(
-                          ...userStats.heatmap.flat(),
-                          1
-                        );
+                      {Array.from({ length: 7 }).map((_, dayIdx) => {
+                        // 168個の配列から、その日の24時間分を切り出す
+                        const hours = userStats.heatmap.slice(dayIdx * 24, (dayIdx + 1) * 24);// @ts-ignore
+                        const maxVal = Math.max(...userStats.heatmap, 1);
                         return (
                           <div key={dayIdx} className="flex items-center gap-px mb-px">
                             <span
@@ -191,9 +190,9 @@ export default function Stats() {
                             >
                               {DAY_LABELS[dayIdx]}
                             </span>
-                            {hours.map((val, hIdx) => {
+                            {hours.map((val, hIdx) => {// @ts-ignore
                               const intensity = val / maxVal;
-                              const bg =
+                              const bg =// @ts-ignore
                                 val === 0
                                   ? "bg-gray-100"
                                   : intensity < 0.25

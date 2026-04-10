@@ -110,7 +110,7 @@ export interface UserMonthlyStatsDoc {
   nightSeconds: number;
   coreSeconds: number;
   maxStreak: number;
-  heatmap: number[][]; // [7][24] day-of-week x hour
+  heatmap: number[]; // 168要素のフラットな配列に変更 (dayOfWeek * 24 + hour)
   schemaVersion: number;
 }
 

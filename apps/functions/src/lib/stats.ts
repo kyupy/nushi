@@ -94,7 +94,7 @@ export async function incrementUserMonthlyStats(session: SessionDoc): Promise<vo
     dayOfWeek,
   } = session;
 
-  const ref = db().doc(`stats/monthly/${session.yearMonth}/users/${userId}`);
+  const ref = db().doc(`stats/monthly/${session.yearMonth}/${userId}`);
 
   await db().runTransaction(async (tx) => {
     const snap = await tx.get(ref);
@@ -109,7 +109,7 @@ export async function incrementUserMonthlyStats(session: SessionDoc): Promise<vo
           nightSeconds: 0,
           coreSeconds: 0,
           maxStreak: 0,
-          heatmap: Array.from({ length: 7 }, () => Array(24).fill(0)),
+          heatmap: Array(168).fill(0),
           schemaVersion: 1,
         };
 
@@ -129,10 +129,10 @@ export async function incrementUserMonthlyStats(session: SessionDoc): Promise<vo
     // Heatmap: add duration to the check-in hour cell
     const hourIn = jstHour(checkIn);
     const dow = dayOfWeek;
-    if (data.heatmap[dow] && data.heatmap[dow][hourIn] !== undefined) {
-      data.heatmap[dow][hourIn] += durSec;
+    const index = dow * 24 + hourIn; // 日付×24時間 ＋ 時間 で位置を特定
+    if (data.heatmap[index] !== undefined) {// @ts-ignore
+      data.heatmap[index] += durSec;
     }
-
     tx.set(ref, data);
   });
 }
@@ -211,7 +211,7 @@ export async function recalcUserMonthlyStats(userId: string, yearMonth: string):
   }
 
   // Update user monthly stats subdocument
-  const userRef = db().doc(`stats/monthly/${yearMonth}/users/${userId}`);
+  const userRef = db().doc(`stats/monthly/${yearMonth}/${userId}`);
   const userMonthly: UserMonthlyStatsDoc = {
     userId,
     displayName,
