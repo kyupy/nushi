@@ -1,10 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { doc, onSnapshot, collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { useStamp } from "../hooks/useStamp";
 import Toast from "../components/Toast";
 import type { SessionDoc } from "../types";
+
+// Get the pending auto-stamp action from URL params or sessionStorage.
+// URL params work when Firebase session exists (liff.init() is skipped, URL is unchanged).
+// sessionStorage fallback covers the case where liff.login() redirected and URL params were lost.
+function getAutoStampAction(): string | null {
+  return (
+    new URLSearchParams(window.location.search).get("action") ??
+    sessionStorage.getItem("pendingAction")
+  );
+}
 
 export default function Home() {
   const { userDoc, firebaseUser } = useAuth();
@@ -14,6 +24,16 @@ export default function Home() {
   const [elapsed, setElapsed] = useState(0);
 
   const isIn = userDoc?.currentStatus === "in";
+  const autoStampDoneRef = useRef(false);
+
+  // Auto-stamp when opened via QR code with ?action=stamp
+  useEffect(() => {
+    if (!firebaseUser || autoStampDoneRef.current) return;
+    if (getAutoStampAction() !== "stamp") return;
+    autoStampDoneRef.current = true;
+    sessionStorage.removeItem("pendingAction");
+    stamp();
+  }, [firebaseUser, stamp]);
 
   // Get today's date string in JST
   const getTodayDateStr = (): string => {

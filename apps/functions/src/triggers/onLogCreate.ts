@@ -32,8 +32,9 @@ export const onLogCreate = onDocumentCreated(
 
     const log = snap.data() as LogDoc;
 
-    // Only process "out" logs that are not voided
-    if (log.action !== "out" || log.voided) {
+    // Only process "out" logs that are not voided and not manual fixes
+    // (manual-fix logs are handled by fixStamp which regenerates sessions directly)
+    if (log.action !== "out" || log.voided || log.method === "manual-fix") {
       return;
     }
 

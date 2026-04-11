@@ -26,11 +26,11 @@ export const checkForgottenCheckout = onSchedule(
   async () => {
     logger.info("Running forgotten checkout check");
 
-    // Load config for threshold (default 6 hours)
+    // Load config for threshold (default 6 hours) and LIFF URL
     const configSnap = await db().doc("config/app").get();
-    const notifyHours = configSnap.exists
-      ? configSnap.data()?.forgottenCheckoutNotifyHours ?? 6
-      : 6;
+    const configData = configSnap.exists ? configSnap.data() : {};
+    const notifyHours = configData?.forgottenCheckoutNotifyHours ?? 6;
+    const liffUrl: string = configData?.liffUrl ?? "";
 
     const thresholdMs = notifyHours * 60 * 60 * 1000;
     const now = Date.now();
@@ -67,8 +67,8 @@ export const checkForgottenCheckout = onSchedule(
             type: "action",
             action: {
               type: "postback",
-              label: "今すぐチェックアウト",
-              data: `action=checkout_now&userId=${user.userId}`,
+              label: "すでに帰った",
+              data: `action=already_left&userId=${user.userId}&liffUrl=${encodeURIComponent(`${liffUrl}/history`)}`,
             },
           },
           {

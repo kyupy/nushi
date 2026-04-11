@@ -2,6 +2,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   useCallback,
   type ReactNode,
@@ -39,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userDoc, setUserDoc] = useState<UserDoc | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const authStartedRef = useRef(false);
 
   const runAuth = useCallback(async () => {
     setLoading(true);
@@ -57,20 +59,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Listen for Firebase auth state changes
+  // Listen for Firebase auth state changes.
+  // If an existing session is found, use it directly (skip authWithLine).
+  // If no session, start the full LIFF + authWithLine flow.
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setFirebaseUser(user);
       if (user) {
         setLoading(false);
+      } else if (!authStartedRef.current) {
+        authStartedRef.current = true;
+        runAuth();
       }
     });
     return unsubscribe;
-  }, []);
-
-  // Start auth flow on mount
-  useEffect(() => {
-    runAuth();
   }, [runAuth]);
 
   // Subscribe to user document when authenticated

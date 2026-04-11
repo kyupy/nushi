@@ -143,6 +143,19 @@ export const fixStamp = onCall<FixStampRequest>(
     await logRef.set(logData);
     logger.info("Manual fix log created", { userId, logId: logRef.id, action, fixDate });
 
+    // Update currentStatus if this is now the latest log
+    const latestLogSnap = await db()
+      .collection("logs")
+      .where("userId", "==", userId)
+      .where("voided", "==", false)
+      .orderBy("timestamp", "desc")
+      .limit(1)
+      .get();
+
+    if (!latestLogSnap.empty && latestLogSnap.docs[0].id === logRef.id) {
+      await userRef.update({ currentStatus: action, lastActionAt: fixTs });
+    }
+
     // Regenerate affected sessions for this user
     await regenerateSessionsForUser(userId, fixDate, fixYearMonth);
 
@@ -222,6 +235,7 @@ async function regenerateSessionsForUser(
         coreSeconds: coreSeconds(checkInMs, checkOutMs),
         autoClosed: log.method === "auto-close",
         voided: false,
+        manualFix: true,
         schemaVersion: 1,
       };
 

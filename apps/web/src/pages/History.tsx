@@ -46,7 +46,7 @@ function roundTo15Min(date: Date): Date {
 
 export default function History() {
   const { firebaseUser } = useAuth();
-  const { fixStamp, fixing, toast, clearToast } = useStamp();
+  const { fixStamp, fixing, deleteLog, deleting, toast, clearToast } = useStamp();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
@@ -117,6 +117,11 @@ export default function History() {
     if (lastDoc && hasMore && !loading) {
       fetchLogs(lastDoc);
     }
+  };
+
+  const handleDelete = async (logId: string) => {
+    await deleteLog(logId);
+    fetchLogs();
   };
 
   const handleFixSubmit = async () => {
@@ -310,6 +315,21 @@ export default function History() {
                             : log.method}
                       </span>
                     )}
+
+                    {/* Delete button */}
+                    <button
+                      onClick={() => handleDelete(log.id)}
+                      disabled={deleting}
+                      className="ml-auto text-gray-300 active:text-red-400 transition-colors disabled:opacity-30"
+                      aria-label="削除"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14H6L5 6" />
+                        <path d="M10 11v6M14 11v6" />
+                        <path d="M9 6V4h6v2" />
+                      </svg>
+                    </button>
                   </div>
                 ))}
               </div>

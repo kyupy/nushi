@@ -30,6 +30,25 @@
       "collectionGroup": "logs",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "voided", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "logs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "date", "order": "ASCENDING" },
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "voided", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "logs",
+      "queryScope": "COLLECTION",
+      "fields": [
         { "fieldPath": "action", "order": "ASCENDING" },
         { "fieldPath": "userId", "order": "ASCENDING" },
         { "fieldPath": "voided", "order": "ASCENDING" },
@@ -78,6 +97,14 @@
         { "fieldPath": "yearMonth", "order": "ASCENDING" },
         { "fieldPath": "voided", "order": "ASCENDING" },
         { "fieldPath": "checkIn", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "currentStatus", "order": "ASCENDING" },
+        { "fieldPath": "lastActionAt", "order": "ASCENDING" }
       ]
     }
   ],

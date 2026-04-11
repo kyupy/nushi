@@ -98,7 +98,7 @@ export async function pushMessageWithQuickReply(
   text: string,
   quickReplyItems: Array<{
     type: "action";
-    action: { type: string; label: string; data?: string; text?: string };
+    action: { type: string; label: string; data?: string; text?: string; uri?: string };
   }>,
 ): Promise<void> {
   await pushMessage(to, [

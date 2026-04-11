@@ -21,12 +21,16 @@ interface UseStampResult {
   undo: () => Promise<void>;
   /** Fix/add a manual stamp */
   fixStamp: (action: "in" | "out", timestamp: Date) => Promise<void>;
+  /** Delete a specific log by ID */
+  deleteLog: (logId: string) => Promise<void>;
   /** Whether a stamp operation is in progress */
   stamping: boolean;
   /** Whether an undo is in progress */
   undoing: boolean;
   /** Whether a fix operation is in progress */
   fixing: boolean;
+  /** Whether a delete operation is in progress */
+  deleting: boolean;
   /** Toast to display */
   toast: ToastMessage | null;
   /** Clear the current toast */
@@ -39,6 +43,7 @@ export function useStamp(): UseStampResult {
   const [stamping, setStamping] = useState(false);
   const [undoing, setUndoing] = useState(false);
   const [fixing, setFixing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [undoCountdown, setUndoCountdown] = useState(0);
   const lastLogIdRef = useRef<string | null>(null);
@@ -220,13 +225,42 @@ export function useStamp(): UseStampResult {
     []
   );
 
+  const deleteLog = useCallback(async (logId: string) => {
+    setDeleting(true);
+    try {
+      const voidLog = httpsCallable<VoidLogRequest, VoidLogResponse>(
+        functions,
+        "voidLog"
+      );
+      await voidLog({ logId });
+      setToast({
+        id: crypto.randomUUID(),
+        text: "打刻を削除しました",
+        type: "info",
+        duration: 3000,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "削除に失敗しました";
+      setToast({
+        id: crypto.randomUUID(),
+        text: message,
+        type: "error",
+        duration: 5000,
+      });
+    } finally {
+      setDeleting(false);
+    }
+  }, []);
+
   return {
     stamp,
     undo,
     fixStamp,
+    deleteLog,
     stamping,
     undoing,
     fixing,
+    deleting,
     toast,
     clearToast,
     undoCountdown,

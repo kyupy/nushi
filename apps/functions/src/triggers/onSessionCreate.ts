@@ -18,8 +18,9 @@ export const onSessionCreate = onDocumentCreated(
 
     const session = snap.data() as SessionDoc;
 
-    // Skip voided sessions
-    if (session.voided) {
+    // Skip voided sessions and sessions created by fixStamp regeneration
+    // (fixStamp handles stats recalculation directly to avoid double-counting)
+    if (session.voided || session.manualFix) {
       return;
     }
 

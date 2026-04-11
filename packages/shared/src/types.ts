@@ -73,6 +73,7 @@ export interface SessionDoc {
 
   autoClosed: boolean;
   voided: boolean;
+  manualFix?: boolean; // true = created by fixStamp regeneration; skip incremental trigger
   schemaVersion: number;
 }
 

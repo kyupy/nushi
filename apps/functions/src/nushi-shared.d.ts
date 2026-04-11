@@ -65,6 +65,7 @@ declare module "@nushi/shared" {
     coreSeconds: number;
     autoClosed: boolean;
     voided: boolean;
+    manualFix?: boolean;
     schemaVersion: number;
   }
 
@@ -100,7 +101,7 @@ declare module "@nushi/shared" {
     nightSeconds: number;
     coreSeconds: number;
     maxStreak: number;
-    heatmap: number[][];
+    heatmap: number[];
     schemaVersion: number;
   }
 

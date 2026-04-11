@@ -14,8 +14,10 @@ export async function initLiff(): Promise<void> {
   await liff.init({ liffId });
   initialized = true;
 
-  // If not logged in via LINE, redirect to login
+  // If not logged in via LINE, save pending action before redirect
   if (!liff.isLoggedIn()) {
+    const action = new URLSearchParams(window.location.search).get("action");
+    if (action) sessionStorage.setItem("pendingAction", action);
     liff.login();
   }
 }

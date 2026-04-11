@@ -14,6 +14,7 @@
     "node": "22"
   },
   "dependencies": {
+    "@line/bot-sdk": "^11.0.0",
     "axios": "^1.7.0",
     "firebase-admin": "^13.0.0",
     "firebase-functions": "^6.3.0"

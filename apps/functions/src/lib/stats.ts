@@ -162,7 +162,7 @@ export async function recalcUserMonthlyStats(userId: string, yearMonth: string):
   let weekendSeconds = 0;
   let nightSec = 0;
   let coreSec = 0;
-  const heatmap: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
+  const heatmap: number[] = Array(168).fill(0);
   let displayName = "";
   let pictureUrl: string | null = null;
 
@@ -184,7 +184,7 @@ export async function recalcUserMonthlyStats(userId: string, yearMonth: string):
 
     const dow = s.dayOfWeek;
     const hourIn = jstHour(s.checkIn);
-    heatmap[dow][hourIn] += s.durationSeconds;
+    heatmap[dow * 24 + hourIn] += s.durationSeconds;
   });
 
   // Fetch user doc for pictureUrl
@@ -270,7 +270,7 @@ export async function recalcDailyStats(date: string): Promise<void> {
     uniqueUsers.add(s.userId);
   });
 
-  await db().doc(`stats/daily/${date}`).set({
+  await db().doc(`stats/daily/records/${date}`).set({
     date,
     totalSessions,
     totalSeconds,

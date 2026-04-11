@@ -1,25 +1,11 @@
 import { onRequest } from "firebase-functions/v2/https";
-import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
-import * as crypto from "crypto";
-import type { UserDoc, LogDoc } from "@nushi/shared";
+import { validateSignature } from "@line/bot-sdk";
 import {
   replyMessage,
   lineChannelSecret,
   lineMessagingToken,
 } from "../lib/line";
-import {
-  logicalDate,
-  logicalYearMonth,
-  jstHour,
-  jstDayOfWeek,
-  jstYear,
-  isWeekend,
-  formatDuration,
-  durationSeconds,
-} from "../lib/dateUtils";
-
-const db = () => getFirestore();
 
 /**
  * LINE Bot webhook endpoint.
@@ -29,8 +15,9 @@ export const lineBot = onRequest(
   {
     region: "asia-northeast1",
     secrets: [lineChannelSecret, lineMessagingToken],
+    invoker: "public",
   },
-  async (req, res) => {
+  async (req, res): Promise<void> => {
     // Only accept POST
     if (req.method !== "POST") {
       res.status(405).send("Method Not Allowed");
@@ -44,21 +31,48 @@ export const lineBot = onRequest(
       return;
     }
 
-    const channelSecret = lineChannelSecret.value();
-    const body = JSON.stringify(req.body);
-    const expectedSig = crypto
-      .createHmac("sha256", channelSecret)
-      .update(body)
-      .digest("base64");
+    const channelSecret = lineChannelSecret.value().trim();
 
-    if (signature !== expectedSig) {
+    // Obtain raw body bytes for HMAC-SHA256 signature verification.
+    //
+    // Priority:
+    //  1. req.rawBody (Buffer) — set by GCF/Cloud Run in production
+    //  2. req.rawBody (string) — unlikely but safe to handle
+    //  3. JSON.stringify(req.body) — body already parsed by Express middleware
+    //  4. Read from the request stream — no body-parser in the pipeline
+    //
+    // NOTE: The TypeScript type declares rawBody as Buffer (non-optional), but
+    // in practice it can be undefined in some configurations, hence the
+    // explicit runtime checks below.
+    const rawBodyBuf: Buffer = await (async () => {
+      const rb = req.rawBody as Buffer | undefined;
+      if (rb != null) {
+        return Buffer.isBuffer(rb) ? rb : Buffer.from(rb);
+      }
+      if (req.body !== undefined && typeof req.body === "object") {
+        return Buffer.from(JSON.stringify(req.body), "utf8");
+      }
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as Uint8Array));
+      }
+      return Buffer.concat(chunks);
+    })();
+
+    if (!validateSignature(rawBodyBuf, channelSecret, signature)) {
       logger.warn("Invalid LINE webhook signature");
       res.status(401).send("Invalid signature");
       return;
     }
 
+    // Parse body if the stream was read directly (req.body not yet set).
+    const parsedBody: { events?: unknown[] } =
+      req.body && typeof req.body === "object"
+        ? (req.body as { events?: unknown[] })
+        : JSON.parse(rawBodyBuf.toString("utf8"));
+
     // Process events
-    const events = req.body?.events ?? [];
+    const events = parsedBody.events ?? [];
 
     for (const event of events) {
       try {
@@ -74,6 +88,12 @@ export const lineBot = onRequest(
 );
 
 async function handleEvent(event: any): Promise<void> {
+  // --- TEMP: log groupId for setup ---
+  if (event.source?.groupId) {
+    logger.info("LINE groupId", { groupId: event.source.groupId, eventType: event.type });
+  }
+  // --- END TEMP ---
+
   if (event.type === "postback") {
     await handlePostback(event);
   }
@@ -92,9 +112,11 @@ async function handlePostback(event: any): Promise<void> {
   }
 
   switch (action) {
-    case "checkout_now":
-      await handleCheckoutNow(userId, replyToken);
+    case "already_left": {
+      const liffUrl = data.get("liffUrl") ?? "";
+      await handleAlreadyLeft(replyToken, liffUrl);
       break;
+    }
 
     case "still_here":
       await handleStillHere(userId, replyToken);
@@ -111,89 +133,13 @@ async function handlePostback(event: any): Promise<void> {
 }
 
 /**
- * Handle "checkout now" postback from forgotten checkout notification.
+ * Handle "already left" postback - reply with a link to the history/fix screen.
  */
-async function handleCheckoutNow(userId: string, replyToken: string): Promise<void> {
-  const userRef = db().doc(`users/${userId}`);
-  const userSnap = await userRef.get();
-
-  if (!userSnap.exists) {
-    await replyMessage(replyToken, [
-      { type: "text", text: "ユーザーが見つかりません。" },
-    ]);
-    return;
-  }
-
-  const user = userSnap.data() as UserDoc;
-
-  if (user.currentStatus !== "in") {
-    await replyMessage(replyToken, [
-      { type: "text", text: "すでにチェックアウト済みです。" },
-    ]);
-    return;
-  }
-
-  const serverNow = Timestamp.now();
-
-  // Find the check-in log for duration calculation
-  const inLogSnap = await db()
-    .collection("logs")
-    .where("userId", "==", userId)
-    .where("action", "==", "in")
-    .where("voided", "==", false)
-    .orderBy("timestamp", "desc")
-    .limit(1)
-    .get();
-
-  let durSec: number | undefined;
-  if (!inLogSnap.empty) {
-    const inLog = inLogSnap.docs[0].data() as LogDoc;
-    durSec = durationSeconds(inLog.timestamp, serverNow);
-  }
-
-  // Create checkout log
-  const logRef = db().collection("logs").doc();
-  const outLog: Record<string, unknown> = {
-    userId,
-    displayName: user.displayName,
-    action: "out",
-    timestamp: serverNow,
-    clientTimestamp: serverNow,
-    date: logicalDate(serverNow),
-    yearMonth: logicalYearMonth(serverNow),
-    year: jstYear(serverNow),
-    dayOfWeek: jstDayOfWeek(serverNow),
-    hour: jstHour(serverNow),
-    isWeekend: isWeekend(serverNow),
-    isHoliday: false,
-    platform: "other",
-    appVersion: "",
-    liffVersion: "",
-    method: "button",
-    voided: false,
-    voidedAt: null,
-    raw: { source: "line-postback" },
-    schemaVersion: 1,
-  };
-
-  await db().runTransaction(async (tx) => {
-    tx.set(logRef, outLog);
-    tx.update(userRef, {
-      currentStatus: "out",
-      lastActionAt: serverNow,
-      currentSessionId: null,
-    });
-  });
-
-  const durationMsg = durSec !== undefined ? `滞在時間: ${formatDuration(durSec)}` : "";
-  await replyMessage(replyToken, [
-    {
-      type: "text",
-      text: `チェックアウトしました！${durationMsg ? "\n" + durationMsg : ""}`,
-    },
-  ]);
-
-  logger.info("Checkout via LINE postback", { userId, logId: logRef.id });
+async function handleAlreadyLeft(replyToken: string, liffUrl: string): Promise<void> {
+  const text = liffUrl
+    ? `打刻を修正してください👇\n${liffUrl}`
+    : "アプリの履歴画面から打刻を修正してください。";
+  await replyMessage(replyToken, [{ type: "text", text }]);
 }
 
 /**

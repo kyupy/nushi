@@ -2,6 +2,8 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
 import type { VoidLogRequest, VoidLogResponse, LogDoc } from "@nushi/shared";
+import { recalcUserMonthlyStats, recalcDailyStats } from "../lib/stats";
+import { logicalDate, logicalYearMonth } from "../lib/dateUtils";
 
 const db = () => getFirestore();
 
@@ -36,23 +38,29 @@ export const voidLog = onCall<VoidLogRequest>(
     // 2. ログ自体を「無効(voided)」にする
     await logRef.update({ voided: true });
 
-    // 3. もし「退室(out)」の取り消しなら、一緒に作られてしまったセッション記録も無効化する
-    if (logData.action === "out") {
-      const sessionsSnap = await db()
-        .collection("sessions")
-        .where("userId", "==", userId)
-        .where("checkOut", "==", logData.timestamp)
-        .where("voided", "==", false)
-        .get();
+    // 3. 対応するセッションを無効化する
+    // 「退室」ログならcheckOutが一致するセッション、「入室」ならcheckInが一致するセッション
+    const sessionField = logData.action === "out" ? "checkOut" : "checkIn";
+    const sessionsSnap = await db()
+      .collection("sessions")
+      .where("userId", "==", userId)
+      .where(sessionField, "==", logData.timestamp)
+      .where("voided", "==", false)
+      .get();
 
-      const batch = db().batch();
-      sessionsSnap.forEach((doc) => {
-        batch.update(doc.ref, { voided: true });
-      });
-      await batch.commit();
-    }
+    const batch = db().batch();
+    sessionsSnap.forEach((doc) => {
+      batch.update(doc.ref, { voided: true });
+    });
+    await batch.commit();
 
-    // 4. ユーザーの現在のステータスを逆に戻す（入室の取り消しなら退室状態へ）
+    // 4. 統計を再計算
+    const date = logicalDate(logData.timestamp);
+    const yearMonth = logicalYearMonth(logData.timestamp);
+    await recalcUserMonthlyStats(userId, yearMonth);
+    await recalcDailyStats(date);
+
+    // 5. ユーザーの現在のステータスを逆に戻す（入室の取り消しなら退室状態へ）
     const newStatus = logData.action === "in" ? "out" : "in";
     const prevLogsSnap = await db()
       .collection("logs")
